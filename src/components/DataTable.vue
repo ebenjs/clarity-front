@@ -13,6 +13,7 @@ interface Action {
   label: string
   action: (item: any) => void
   class?: string
+  isVisible?: (item: any) => boolean
 }
 
 interface FilterOption {
@@ -245,6 +246,7 @@ const isAllSelected = computed(() => {
                 <button
                   v-for="action in actions"
                   :key="action.label"
+                  v-show="action.isVisible ? action.isVisible(item) : true"
                   @click="action.action(item)"
                   :class="action.class || 'font-medium text-fg-brand hover:underline'"
                 >

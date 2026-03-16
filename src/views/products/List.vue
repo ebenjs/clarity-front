@@ -66,8 +66,8 @@ const handleCreate = () => {
   createModal.value?.open()
 }
 
-const handleCreated = (newProduct: Product) => {
-  products.value.push(newProduct)
+const handleCreated = (newProduct: unknown) => {
+  products.value.push(newProduct as Product)
 }
 
 onMounted(fetchProducts)

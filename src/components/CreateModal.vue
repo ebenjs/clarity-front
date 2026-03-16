@@ -5,7 +5,27 @@
         <label :for="field.key" class="block text-sm font-medium text-heading">{{
           field.label
         }}</label>
+        <select
+          v-if="field.type === 'select'"
+          :id="field.key"
+          v-model="form[field.key]"
+          :class="
+            field.class ||
+            'block w-full px-3 py-2 bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand shadow-xs placeholder:text-body'
+          "
+          :required="field.required !== false"
+        >
+          <option value="">{{ field.placeholder || `Select ${field.label.toLowerCase()}` }}</option>
+          <option
+            v-for="option in field.options || []"
+            :key="String(option.value)"
+            :value="String(option.value)"
+          >
+            {{ option.label }}
+          </option>
+        </select>
         <input
+          v-else
           :id="field.key"
           v-model="form[field.key]"
           :type="field.type || 'text'"
@@ -50,6 +70,11 @@ interface Field {
   placeholder?: string
   required?: boolean
   class?: string
+  valueType?: 'string' | 'number'
+  options?: Array<{
+    label: string
+    value: string | number
+  }>
 }
 
 interface Props {
@@ -61,7 +86,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  created: [item: any]
+  created: [item: unknown]
   close: []
 }>()
 
@@ -69,7 +94,22 @@ const modal = ref<InstanceType<typeof Modal>>()
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-const form = reactive<Record<string, any>>({})
+const form = reactive<Record<string, unknown>>({})
+
+const normalizeValue = (field: Field, value: unknown) => {
+  if (field.valueType === 'number') {
+    return value === '' || value === null || value === undefined ? null : Number(value)
+  }
+
+  return value
+}
+
+const buildPayload = () => {
+  return props.fields.reduce<Record<string, unknown>>((payload, field) => {
+    payload[field.key] = normalizeValue(field, form[field.key])
+    return payload
+  }, {})
+}
 
 const open = () => {
   modal.value?.open()
@@ -99,7 +139,7 @@ const handleSubmit = async () => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(form),
+      body: JSON.stringify(buildPayload()),
     })
 
     if (!response.ok) throw new Error('Failed to create item')

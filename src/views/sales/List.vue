@@ -1,8 +1,8 @@
 /* eslint-disable vue/multi-word-component-names */
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import DataTable from '@/components/DataTable.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import CreateModal from '@/components/CreateModal.vue'
 
 interface Sale {
@@ -18,11 +18,32 @@ interface Sale {
   client: { id: number; name: string; phone: string; email: string; address: string }
 }
 
-const router = useRouter()
 const createModal = ref<InstanceType<typeof CreateModal>>()
 const sales = ref<Sale[]>([])
+const products = ref<{ id: number; name: string }[]>([])
+const clients = ref<{ id: number; name: string }[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
+
+const fetchProducts = async () => {
+  try {
+    const response = await fetch('http://localhost:8080/api/products')
+    if (!response.ok) throw new Error('Failed to fetch products')
+    products.value = await response.json()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Unknown error'
+  }
+}
+
+const fetchClients = async () => {
+  try {
+    const response = await fetch('http://localhost:8080/api/clients')
+    if (!response.ok) throw new Error('Failed to fetch clients')
+    clients.value = await response.json()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Unknown error'
+  }
+}
 
 const fetchSales = async () => {
   loading.value = true
@@ -31,23 +52,11 @@ const fetchSales = async () => {
     const response = await fetch('http://localhost:8080/api/sales')
     if (!response.ok) throw new Error('Failed to fetch sales')
     sales.value = await response.json()
+    console.log(sales.value)
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error'
   } finally {
     loading.value = false
-  }
-}
-
-const deleteSale = async (id: number) => {
-  if (!confirm('Are you sure you want to delete this sale?')) return
-  try {
-    const response = await fetch(`http://localhost:8080/api/sales/${id}`, {
-      method: 'DELETE',
-    })
-    if (!response.ok) throw new Error('Failed to delete sale')
-    sales.value = sales.value.filter((s) => s.id !== id)
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Unknown error'
   }
 }
 
@@ -61,21 +70,37 @@ const columns = [
   { header: 'Date', key: 'date' },
   { header: 'Seller', key: 'seller' },
   { header: 'Client', key: 'client.name' },
-  { header: 'Invoice', key: 'invoiceUrl' },
+  { header: 'Actions', key: 'actions' },
 ]
+
+const buildInvoiceUrl = (invoicePath: string) => {
+  if (!invoicePath) return ''
+
+  if (invoicePath.startsWith('http://') || invoicePath.startsWith('https://')) {
+    return invoicePath
+  }
+
+  const cleaned = invoicePath.replace(/^\/+/, '')
+
+  if (cleaned.startsWith('invoices/')) {
+    return `http://localhost:8080/${cleaned}`
+  }
+
+  return `http://localhost:8080/invoices/${cleaned}`
+}
+
+const viewInvoice = (sale: Sale) => {
+  if (!sale.invoiceUrl) return
+  window.open(buildInvoiceUrl(sale.invoiceUrl), '_blank', 'noopener,noreferrer')
+}
 
 const actions = [
   {
-    label: 'Edit',
-    action: (item: Sale) => {
-      router.push(`/sales/edit/${item.id}`)
-    },
-    class: 'text-blue-500 hover:text-blue-700',
-  },
-  {
-    label: 'Delete',
-    action: (item: Sale) => deleteSale(item.id),
-    class: 'text-red-500 hover:text-red-700',
+    label: 'Voir facture',
+    action: (item: Sale) => viewInvoice(item),
+    class:
+      'inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100',
+    isVisible: (item: Sale) => Boolean(item.invoiceUrl),
   },
 ]
 
@@ -83,11 +108,15 @@ const handleCreate = () => {
   createModal.value?.open()
 }
 
-const handleCreated = (newSale: Sale) => {
-  sales.value.push(newSale)
+const handleCreated = (newSale: unknown) => {
+  sales.value.unshift(newSale as Sale)
 }
 
-onMounted(fetchSales)
+onMounted(() => {
+  fetchSales()
+  fetchProducts()
+  fetchClients()
+})
 </script>
 
 <template>
@@ -106,20 +135,59 @@ onMounted(fetchSales)
       :on-create="handleCreate"
       create-label="Create Sale"
     />
-    <div v-else-if="!loading">No sales found.</div>
+    <EmptyState
+      v-else-if="!loading"
+      message="No sales found."
+      action-label="Create Sale"
+      :on-action="handleCreate"
+    />
     <CreateModal
       ref="createModal"
       entity-name="Sale"
       api-endpoint="sales"
       :fields="[
-        { key: 'productId', label: 'Product ID', type: 'number', required: true },
-        { key: 'quantity', label: 'Quantity', type: 'number', required: true },
-        { key: 'type', label: 'Type', type: 'text', required: true, placeholder: 'SMALL or LARGE' },
-        { key: 'price', label: 'Price', type: 'number', required: true },
-        { key: 'date', label: 'Date', type: 'date', required: true },
-        { key: 'seller', label: 'Seller', type: 'text', required: true },
-        { key: 'invoiceUrl', label: 'Invoice URL', type: 'text', required: false },
-        { key: 'clientId', label: 'Client ID', type: 'number', required: true },
+        {
+          key: 'productId',
+          label: 'Product',
+          type: 'select',
+          required: true,
+          valueType: 'number',
+          placeholder: 'Select product',
+          options: products.map((product) => ({ label: product.name, value: product.id })),
+        },
+        {
+          key: 'quantity',
+          label: 'Quantity',
+          type: 'number',
+          required: true,
+          valueType: 'number',
+        },
+        {
+          key: 'type',
+          label: 'Type',
+          type: 'select',
+          required: true,
+          placeholder: 'Select sale type',
+          options: [
+            { label: 'Small', value: 'SMALL' },
+            { label: 'Large', value: 'LARGE' },
+          ],
+        },
+        {
+          key: 'seller',
+          label: 'Seller',
+          type: 'text',
+          required: true,
+        },
+        {
+          key: 'clientId',
+          label: 'Client',
+          type: 'select',
+          required: true,
+          valueType: 'number',
+          placeholder: 'Select client',
+          options: clients.map((client) => ({ label: client.name, value: client.id })),
+        },
       ]"
       @created="handleCreated"
     />

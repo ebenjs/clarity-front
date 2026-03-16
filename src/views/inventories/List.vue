@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DataTable from '@/components/DataTable.vue'
 import CreateModal from '@/components/CreateModal.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 interface Inventory {
   id: number
@@ -73,8 +74,8 @@ const handleCreate = () => {
   createModal.value?.open()
 }
 
-const handleCreated = (newInventory: Inventory) => {
-  inventories.value.push(newInventory)
+const handleCreated = (newInventory: unknown) => {
+  inventories.value.push(newInventory as Inventory)
 }
 
 onMounted(fetchInventories)
@@ -96,7 +97,12 @@ onMounted(fetchInventories)
       :on-create="handleCreate"
       create-label="Create Inventory"
     />
-    <div v-else-if="!loading">No inventories found.</div>
+    <EmptyState
+      v-else-if="!loading"
+      message="No inventories found."
+      action-label="Create Inventory"
+      :on-action="handleCreate"
+    />
     <CreateModal
       ref="createModal"
       entity-name="Inventory"

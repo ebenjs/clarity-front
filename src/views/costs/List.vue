@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DataTable from '@/components/DataTable.vue'
 import CreateModal from '@/components/CreateModal.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 interface Cost {
   id: number
@@ -79,8 +80,8 @@ const handleCreate = () => {
   createModal.value?.open()
 }
 
-const handleCreated = (newCost: Cost) => {
-  costs.value.push(newCost)
+const handleCreated = (newCost: unknown) => {
+  costs.value.push(newCost as Cost)
 }
 
 onMounted(fetchCosts)
@@ -102,7 +103,12 @@ onMounted(fetchCosts)
       :on-create="handleCreate"
       create-label="Create Cost"
     />
-    <div v-else-if="!loading">No costs found.</div>
+    <EmptyState
+      v-else-if="!loading"
+      message="No costs found."
+      action-label="Create Cost"
+      :on-action="handleCreate"
+    />
     <CreateModal
       ref="createModal"
       entity-name="Cost"

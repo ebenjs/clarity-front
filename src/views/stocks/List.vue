@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import DataTable from '@/components/DataTable.vue'
-import CreateModal from '@/components/CreateModal.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 interface Stock {
   id: number
@@ -10,7 +10,6 @@ interface Stock {
   quantity: number
 }
 
-const createModal = ref<InstanceType<typeof CreateModal>>()
 const stocks = ref<Stock[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -35,14 +34,6 @@ const columns = [
   { header: 'Quantity', key: 'quantity' },
 ]
 
-const handleCreate = () => {
-  createModal.value?.open()
-}
-
-const handleCreated = (newStock: Stock) => {
-  stocks.value.push(newStock)
-}
-
 onMounted(fetchStocks)
 </script>
 
@@ -58,19 +49,7 @@ onMounted(fetchStocks)
       search-placeholder="Search stocks..."
       :show-checkbox="false"
       :on-refresh="fetchStocks"
-      :on-create="handleCreate"
-      create-label="Create Stock"
     />
-    <div v-else-if="!loading">No stocks found.</div>
-    <CreateModal
-      ref="createModal"
-      entity-name="Stock"
-      api-endpoint="stocks"
-      :fields="[
-        { key: 'productId', label: 'Product ID', type: 'number', required: true },
-        { key: 'quantity', label: 'Quantity', type: 'number', required: true },
-      ]"
-      @created="handleCreated"
-    />
+    <EmptyState v-else-if="!loading" message="No stocks found." />
   </div>
 </template>

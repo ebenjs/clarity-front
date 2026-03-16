@@ -16,9 +16,13 @@ import {
   SaleTag01Icon,
   TradeUpIcon,
 } from '@hugeicons/core-free-icons'
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import router from './router'
-import { HugeiconsIcon } from '@hugeicons/vue'
+import { useRoute } from 'vue-router'
+import { useAuthStore } from './stores/auth'
+
+const route = useRoute()
+const auth = useAuthStore()
 
 const navigationLinks = [
   { id: 1, icon: Home01Icon, label: 'Accueil', routerLink: '/' },
@@ -30,12 +34,38 @@ const navigationLinks = [
   { id: 7, icon: CreditCardPosIcon, label: 'Enregistrement de coûts', routerLink: '/costs' },
   { id: 8, icon: Coins02Icon, label: 'Categories de coûts', routerLink: '/cost-categories' },
   { id: 9, icon: ApartmentIcon, label: 'Stock', routerLink: '/stocks' },
-  { id: 10, icon: Idea01Icon, label: 'Inventaire', routerLink: '/inventories' },
+  { id: 10, icon: Idea01Icon, label: 'Inventaire', routerLink: '/inventories', adminOnly: true },
+  {
+    id: 11,
+    icon: LocationUser01Icon,
+    label: 'Utilisateurs',
+    routerLink: '/users',
+    adminOnly: true,
+  },
   { id: 12, icon: ChartAnalysisIcon, label: 'Statistiques', routerLink: '/reports' },
-  { id: 11, icon: Configuration01Icon, label: 'Configuration', routerLink: '/config' },
+  { id: 13, icon: Configuration01Icon, label: 'Configuration', routerLink: '/config' },
 ]
 
 const activeLinkId = ref<number>(1)
+
+const visibleNavigationLinks = computed(() =>
+  navigationLinks.filter((link) => !link.adminOnly || auth.isAdmin),
+)
+
+const isAuthScreen = computed(() => route.name === 'login' || route.name === 'setup')
+
+watch(
+  () => route.path,
+  (path) => {
+    const selectedLink = [...navigationLinks]
+      .sort((a, b) => b.routerLink.length - a.routerLink.length)
+      .find((link) => path === link.routerLink || path.startsWith(`${link.routerLink}/`))
+    if (selectedLink) {
+      activeLinkId.value = selectedLink.id
+    }
+  },
+  { immediate: true },
+)
 
 const setActiveLink = (id: number) => {
   activeLinkId.value = id
@@ -47,12 +77,16 @@ const setActiveLink = (id: number) => {
 </script>
 
 <template>
-  <div class="grid grid-cols-12 h-screen">
-    <aside class="col-span-2 p-6 border-r border-gray-300">
+  <RouterView v-if="isAuthScreen" />
+
+  <div v-else class="h-screen bg-gray-100">
+    <aside
+      class="fixed inset-y-0 left-0 z-20 w-72 border-r border-gray-300 bg-white p-6 overflow-y-auto"
+    >
       <AppLeading />
       <div class="mt-6 flex flex-col gap-2">
         <LeftNavigationItem
-          v-for="link in navigationLinks"
+          v-for="link in visibleNavigationLinks"
           :key="link.id"
           :id="link.id"
           :label="link.label"
@@ -63,15 +97,13 @@ const setActiveLink = (id: number) => {
       </div>
     </aside>
 
-    <main class="col-span-8 bg-gray-100 p-6">
-      <header>
-        <div class="wrapper">
-          <RouterView />
-        </div>
-      </header>
+    <main class="h-screen overflow-y-auto ml-72 mr-80 p-6">
+      <RouterView />
     </main>
 
-    <aside class="col-span-2 p-6 border-l border-gray-300">
+    <aside
+      class="fixed inset-y-0 right-0 z-20 w-80 border-l border-gray-300 bg-white p-6 overflow-y-auto"
+    >
       <div class="mb-3">
         <span class="text-xl">Centre d'aide</span>
       </div>

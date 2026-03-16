@@ -80,10 +80,39 @@ const stockChartData = ref({
 })
 
 const loading = ref(true)
+const currency = ref('XAF')
+
+const formatCurrency = (value: number) => {
+  const numeric = Number(value ?? 0)
+  try {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: currency.value || 'XAF',
+      maximumFractionDigits: 0,
+    }).format(numeric)
+  } catch {
+    return `${numeric.toLocaleString()} ${currency.value || ''}`.trim()
+  }
+}
+
+const fetchCompanyConfig = async () => {
+  try {
+    const response = await fetch('http://localhost:8080/api/company-config')
+    if (!response.ok) return
+    const config = await response.json()
+    if (typeof config?.currency === 'string' && config.currency.trim()) {
+      currency.value = config.currency.trim()
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement de la devise:', error)
+  }
+}
 
 // Fonctions pour charger les données depuis l'API
 const fetchStats = async () => {
   try {
+    await fetchCompanyConfig()
+
     // Récupérer les statistiques principales
     const currentDate = new Date()
     const year = currentDate.getFullYear()
@@ -147,7 +176,7 @@ const fetchChartData = async (year: number, month: number) => {
     if (salesResponse.ok) {
       const salesData = await salesResponse.json()
       // Adapter les données selon la structure de l'API
-      if (Array.isArray(salesData)) {
+      if (Array.isArray(salesData) && salesChartData.value.datasets[0]) {
         salesChartData.value.labels = salesData.map((item) => item.month || item.label)
         salesChartData.value.datasets[0].data = salesData.map((item) => item.amount || item.value)
       }
@@ -157,7 +186,7 @@ const fetchChartData = async (year: number, month: number) => {
     const stockResponse = await fetch('http://localhost:8080/api/reports/stock/overview')
     if (stockResponse.ok) {
       const stockData = await stockResponse.json()
-      if (Array.isArray(stockData)) {
+      if (Array.isArray(stockData) && stockChartData.value.datasets[0]) {
         stockChartData.value.labels = stockData.map((item) => item.productName || item.name)
         stockChartData.value.datasets[0].data = stockData.map((item) => item.quantity || item.value)
       }
@@ -187,7 +216,7 @@ onMounted(() => {
           <div>
             <p class="text-sm font-medium text-body">Chiffre d'Affaires</p>
             <p class="text-2xl font-bold text-heading">
-              {{ stats.totalRevenue.toLocaleString() }} €
+              {{ formatCurrency(stats.totalRevenue) }}
             </p>
           </div>
           <div class="p-3 bg-green-100 rounded-full">
@@ -213,7 +242,7 @@ onMounted(() => {
           <div>
             <p class="text-sm font-medium text-body">Profit</p>
             <p class="text-2xl font-bold text-heading">
-              {{ stats.totalProfit.toLocaleString() }} €
+              {{ formatCurrency(stats.totalProfit) }}
             </p>
           </div>
           <div class="p-3 bg-blue-100 rounded-full">
@@ -262,7 +291,7 @@ onMounted(() => {
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-body">Coûts</p>
-            <p class="text-2xl font-bold text-heading">{{ stats.totalCosts.toLocaleString() }} €</p>
+            <p class="text-2xl font-bold text-heading">{{ formatCurrency(stats.totalCosts) }}</p>
           </div>
           <div class="p-3 bg-red-100 rounded-full">
             <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,7 +328,7 @@ onMounted(() => {
                   beginAtZero: true,
                   ticks: {
                     callback: function (value) {
-                      return value.toLocaleString() + ' €'
+                      return formatCurrency(Number(value))
                     },
                   },
                 },
@@ -348,99 +377,13 @@ onMounted(() => {
                 beginAtZero: true,
                 ticks: {
                   callback: function (value) {
-                    return value.toLocaleString() + ' €'
+                    return formatCurrency(Number(value))
                   },
                 },
               },
             },
           }"
         />
-      </div>
-    </div>
-
-    <!-- Section Actions Rapides -->
-    <div class="bg-white rounded-lg shadow-sm border border-default-medium p-6">
-      <h3 class="text-lg font-semibold text-heading mb-4">Actions Rapides</h3>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <router-link
-          to="/products"
-          class="flex flex-col items-center p-4 bg-neutral-secondary-medium rounded-lg hover:bg-neutral-tertiary-medium transition-colors"
-        >
-          <svg
-            class="w-8 h-8 text-heading mb-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-            ></path>
-          </svg>
-          <span class="text-sm font-medium text-heading">Produits</span>
-        </router-link>
-
-        <router-link
-          to="/sales"
-          class="flex flex-col items-center p-4 bg-neutral-secondary-medium rounded-lg hover:bg-neutral-tertiary-medium transition-colors"
-        >
-          <svg
-            class="w-8 h-8 text-heading mb-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-            ></path>
-          </svg>
-          <span class="text-sm font-medium text-heading">Ventes</span>
-        </router-link>
-
-        <router-link
-          to="/clients"
-          class="flex flex-col items-center p-4 bg-neutral-secondary-medium rounded-lg hover:bg-neutral-tertiary-medium transition-colors"
-        >
-          <svg
-            class="w-8 h-8 text-heading mb-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-            ></path>
-          </svg>
-          <span class="text-sm font-medium text-heading">Clients</span>
-        </router-link>
-
-        <router-link
-          to="/reports"
-          class="flex flex-col items-center p-4 bg-neutral-secondary-medium rounded-lg hover:bg-neutral-tertiary-medium transition-colors"
-        >
-          <svg
-            class="w-8 h-8 text-heading mb-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            ></path>
-          </svg>
-          <span class="text-sm font-medium text-heading">Rapports</span>
-        </router-link>
       </div>
     </div>
   </div>

@@ -3,7 +3,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DataTable from '@/components/DataTable.vue'
-import CreateModal from '@/components/CreateModal.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 interface Purchase {
   id: number
@@ -11,10 +11,11 @@ interface Purchase {
   quantity: number
   pricePerItem: number
   date: string
+  status: 'PASSE' | 'LIVREE'
+  paymentStatus: 'NON_PAYE' | 'PAYE'
 }
 
 const router = useRouter()
-const createModal = ref<InstanceType<typeof CreateModal>>()
 const purchases = ref<Purchase[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -33,17 +34,14 @@ const fetchPurchases = async () => {
   }
 }
 
-const deletePurchase = async (id: number) => {
-  if (!confirm('Are you sure you want to delete this purchase?')) return
+const getErrorMessage = async (response: Response, fallback: string) => {
   try {
-    const response = await fetch(`http://localhost:8080/api/purchases/${id}`, {
-      method: 'DELETE',
-    })
-    if (!response.ok) throw new Error('Failed to delete purchase')
-    purchases.value = purchases.value.filter((p) => p.id !== id)
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Unknown error'
+    const data = await response.json()
+    if (typeof data?.message === 'string') return data.message
+  } catch {
+    // Ignore JSON parse failures and use fallback message
   }
+  return fallback
 }
 
 const columns = [
@@ -51,30 +49,73 @@ const columns = [
   { header: 'Product', key: 'product.name' },
   { header: 'Quantity', key: 'quantity' },
   { header: 'Price per Item', key: 'pricePerItem' },
+  { header: 'Status', key: 'status' },
+  { header: 'Payment', key: 'paymentStatus' },
   { header: 'Date', key: 'date' },
 ]
 
+const markAsDelivered = async (purchase: Purchase) => {
+  if (purchase.status === 'LIVREE') return
+
+  try {
+    const response = await fetch(`http://localhost:8080/api/purchases/${purchase.id}/livrer`, {
+      method: 'POST',
+    })
+
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to mark purchase as delivered'))
+    }
+
+    await fetchPurchases()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Unknown error'
+  }
+}
+
+const setPaymentStatus = async (purchase: Purchase, status: 'NON_PAYE' | 'PAYE') => {
+  if (purchase.paymentStatus === status) return
+
+  try {
+    const response = await fetch(
+      `http://localhost:8080/api/purchases/${purchase.id}/paiement?status=${status}`,
+      {
+        method: 'POST',
+      },
+    )
+
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to update payment status'))
+    }
+
+    await fetchPurchases()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Unknown error'
+  }
+}
+
 const actions = [
   {
-    label: 'Edit',
-    action: (item: Purchase) => {
-      router.push(`/purchases/edit/${item.id}`)
-    },
-    class: 'text-blue-500 hover:text-blue-700',
+    label: 'Mark Delivered',
+    action: (item: Purchase) => markAsDelivered(item),
+    class: 'text-blue-500 hover:text-blue-700 disabled:opacity-50',
+    isVisible: (item: Purchase) => item.status !== 'LIVREE',
   },
   {
-    label: 'Delete',
-    action: (item: Purchase) => deletePurchase(item.id),
-    class: 'text-red-500 hover:text-red-700',
+    label: 'Mark Paid',
+    action: (item: Purchase) => setPaymentStatus(item, 'PAYE'),
+    class: 'text-green-600 hover:text-green-700 disabled:opacity-50',
+    isVisible: (item: Purchase) => item.paymentStatus !== 'PAYE',
+  },
+  {
+    label: 'Mark Unpaid',
+    action: (item: Purchase) => setPaymentStatus(item, 'NON_PAYE'),
+    class: 'text-amber-600 hover:text-amber-700 disabled:opacity-50',
+    isVisible: (item: Purchase) => item.paymentStatus !== 'NON_PAYE',
   },
 ]
 
 const handleCreate = () => {
-  createModal.value?.open()
-}
-
-const handleCreated = (newPurchase: Purchase) => {
-  purchases.value.push(newPurchase)
+  router.push('/purchases/create')
 }
 
 onMounted(fetchPurchases)
@@ -96,18 +137,11 @@ onMounted(fetchPurchases)
       :on-create="handleCreate"
       create-label="Create Purchase"
     />
-    <div v-else-if="!loading">No purchases found.</div>
-    <CreateModal
-      ref="createModal"
-      entity-name="Purchase"
-      api-endpoint="purchases"
-      :fields="[
-        { key: 'productId', label: 'Product ID', type: 'number', required: true },
-        { key: 'quantity', label: 'Quantity', type: 'number', required: true },
-        { key: 'pricePerItem', label: 'Price per Item', type: 'number', required: true },
-        { key: 'date', label: 'Date', type: 'date', required: true },
-      ]"
-      @created="handleCreated"
+    <EmptyState
+      v-else-if="!loading"
+      message="No purchases found."
+      action-label="Create Purchase"
+      :on-action="handleCreate"
     />
   </div>
 </template>

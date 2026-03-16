@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DataTable from '@/components/DataTable.vue'
 import CreateModal from '@/components/CreateModal.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 interface Client {
   id: number
@@ -73,8 +74,8 @@ const handleCreate = () => {
   createModal.value?.open()
 }
 
-const handleCreated = (newClient: Client) => {
-  clients.value.push(newClient)
+const handleCreated = (newClient: unknown) => {
+  clients.value.push(newClient as Client)
 }
 
 onMounted(fetchClients)
@@ -96,7 +97,12 @@ onMounted(fetchClients)
       :on-create="handleCreate"
       create-label="Create Client"
     />
-    <div v-else-if="!loading">No clients found.</div>
+    <EmptyState
+      v-else-if="!loading"
+      message="No clients found."
+      action-label="Create Client"
+      :on-action="handleCreate"
+    />
     <CreateModal
       ref="createModal"
       entity-name="Client"

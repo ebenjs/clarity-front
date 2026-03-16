@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DataTable from '@/components/DataTable.vue'
 import CreateModal from '@/components/CreateModal.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 interface CostCategory {
   id: number
@@ -73,8 +74,8 @@ const handleCreate = () => {
   createModal.value?.open()
 }
 
-const handleCreated = (newCategory: CostCategory) => {
-  categories.value.push(newCategory)
+const handleCreated = (newCategory: unknown) => {
+  categories.value.push(newCategory as CostCategory)
 }
 
 onMounted(fetchCategories)
@@ -96,7 +97,12 @@ onMounted(fetchCategories)
       :on-create="handleCreate"
       create-label="Create Category"
     />
-    <div v-else-if="!loading">No categories found.</div>
+    <EmptyState
+      v-else-if="!loading"
+      message="No categories found."
+      action-label="Create Category"
+      :on-action="handleCreate"
+    />
     <CreateModal
       ref="createModal"
       entity-name="Category"
