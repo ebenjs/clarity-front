@@ -26,7 +26,7 @@ const actions = [
   {
     label: 'Edit',
     action: (item: Product) => router.push(`/products/edit/${item.id}`),
-    class: 'font-medium text-blue-500 hover:underline',
+    class: 'font-medium text-amber-600 hover:underline',
   },
   {
     label: 'Delete',

@@ -13,3 +13,102 @@ body {
   height: 100%;
   width: 100%;
 }
+
+:root {
+  color-scheme: light;
+}
+
+html.theme-dark {
+  color-scheme: dark;
+}
+
+html.theme-dark body {
+  background: #1b1b1f;
+  color: #e5e7eb;
+}
+
+html.theme-dark #app {
+  background: #1b1b1f;
+}
+
+html.theme-dark :where(.bg-gray-100, .bg-neutral-primary-soft) {
+  background-color: #1b1b1f !important;
+}
+
+html.theme-dark :where(.bg-white, .bg-neutral-primary-medium) {
+  background-color: #24262b !important;
+}
+
+html.theme-dark :where(.bg-neutral-secondary-medium) {
+  background-color: #2b2e34 !important;
+}
+
+html.theme-dark :where(.bg-neutral-tertiary-medium) {
+  background-color: #353841 !important;
+}
+
+html.theme-dark :where(.border-gray-300, .border-gray-200, .border-slate-200, .border-slate-300) {
+  border-color: #3a3d45 !important;
+}
+
+html.theme-dark :where(.border-default, .border-default-medium, .border-brand-subtle) {
+  border-color: #3a3d45 !important;
+}
+
+html.theme-dark :where(.text-black, .text-slate-900, .text-heading, .dark-title) {
+  color: #f3f4f6 !important;
+}
+
+html.theme-dark :where(.text-slate-700, .text-slate-600, .text-body) {
+  color: #c4c8d0 !important;
+}
+
+html.theme-dark :where(.placeholder\:text-body)::placeholder {
+  color: #9ca3af !important;
+}
+
+html.theme-dark :where(input, textarea, select) {
+  background-color: #2b2e34;
+  color: #f3f4f6;
+  border-color: #434754;
+}
+
+html.theme-dark :where(input:focus, textarea:focus, select:focus) {
+  border-color: #d97706;
+}
+
+html.theme-dark :where(.bg-brand-softer) {
+  background-color: #2f2a1f !important;
+}
+
+html.theme-dark :where(.text-fg-brand-strong) {
+  color: #fcd9a4 !important;
+}
+
+html.theme-dark :where(.bg-amber-50) {
+  background-color: #3a2d18 !important;
+}
+
+html.theme-dark :where(.bg-amber-100) {
+  background-color: #4a3719 !important;
+}
+
+html.theme-dark :where(.text-amber-900) {
+  color: #fde7c2 !important;
+}
+
+html.theme-dark :where(.text-amber-800, .text-amber-700, .text-amber-600) {
+  color: #f3c27c !important;
+}
+
+html.theme-dark :where(.hover\:bg-amber-100:hover) {
+  background-color: #5a431f !important;
+}
+
+html.theme-dark :where(.hover\:bg-slate-100:hover) {
+  background-color: #353841 !important;
+}
+
+html.theme-dark :where(.shadow-sm, .shadow-lg, .shadow-xs) {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35) !important;
+}

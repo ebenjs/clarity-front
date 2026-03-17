@@ -116,10 +116,10 @@ onMounted(() => {
           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
         ></textarea>
       </div>
-      <button type="submit" :disabled="loading" class="bg-blue-500 text-white px-4 py-2 rounded">
+      <button type="submit" :disabled="loading" class="bg-amber-600 text-white px-4 py-2 rounded">
         {{ loading ? 'Updating...' : 'Update' }}
       </button>
-      <router-link to="/costs" class="ml-2 text-blue-500">Cancel</router-link>
+      <router-link to="/costs" class="ml-2 text-amber-600">Cancel</router-link>
     </form>
     <div v-if="error" class="text-red-500 mt-4">{{ error }}</div>
   </div>

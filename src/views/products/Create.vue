@@ -45,7 +45,7 @@ const createProduct = async () => {
         <button
           type="submit"
           :disabled="loading"
-          class="bg-green-500 text-white px-4 py-2 rounded-base hover:bg-green-600 focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+          class="bg-amber-600 text-white px-4 py-2 rounded-base hover:bg-amber-700 focus:ring-2 focus:ring-amber-500 focus:ring-opacity-50"
         >
           {{ loading ? 'Creating...' : 'Create Product' }}
         </button>

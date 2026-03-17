@@ -37,14 +37,33 @@ const searchQuery = ref('')
 const selectedFilter = ref('')
 const selectedItems = ref<any[]>([])
 
+const getValueByPath = (item: Record<string, unknown>, path: string) => {
+  if (!path.includes('.')) {
+    return item[path]
+  }
+
+  return path.split('.').reduce<unknown>((current, key) => {
+    if (current && typeof current === 'object') {
+      return (current as Record<string, unknown>)[key]
+    }
+    return undefined
+  }, item)
+}
+
 const filteredData = computed(() => {
   let filtered = props.data
 
   if (searchQuery.value) {
+    const normalizedQuery = searchQuery.value.toLowerCase()
     filtered = filtered.filter((item) =>
-      Object.values(item).some((value) =>
-        String(value).toLowerCase().includes(searchQuery.value.toLowerCase()),
-      ),
+      props.columns.some((column) => {
+        if (column.key === 'actions') return false
+
+        const value = getValueByPath(item as Record<string, unknown>, column.key)
+        return String(value ?? '')
+          .toLowerCase()
+          .includes(normalizedQuery)
+      }),
     )
   }
 
@@ -126,7 +145,7 @@ const isAllSelected = computed(() => {
         <button
           v-if="onCreate"
           @click="onCreate"
-          class="inline-flex items-center justify-center text-white bg-green-500 border border-green-500 hover:bg-green-600 hover:border-green-600 focus:ring-4 focus:ring-green-300 shadow-xs font-medium leading-5 rounded-base text-sm px-3 py-2 focus:outline-none"
+          class="inline-flex items-center justify-center text-white bg-amber-600 border border-amber-600 hover:bg-amber-700 hover:border-amber-700 focus:ring-4 focus:ring-amber-200 shadow-xs font-medium leading-5 rounded-base text-sm px-3 py-2 focus:outline-none"
           type="button"
         >
           <HugeiconsIcon :icon="AddCircleIcon" />
@@ -255,7 +274,7 @@ const isAllSelected = computed(() => {
               </div>
             </template>
             <template v-else>
-              {{ item[column.key] }}
+              {{ getValueByPath(item, column.key) ?? '-' }}
             </template>
           </td>
         </tr>

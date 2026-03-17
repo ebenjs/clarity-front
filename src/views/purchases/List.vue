@@ -1,9 +1,9 @@
 /* eslint-disable vue/multi-word-component-names */
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import DataTable from '@/components/DataTable.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import CreateModal from '@/components/CreateModal.vue'
 
 interface Purchase {
   id: number
@@ -15,10 +15,21 @@ interface Purchase {
   paymentStatus: 'NON_PAYE' | 'PAYE'
 }
 
-const router = useRouter()
+const createModal = ref<InstanceType<typeof CreateModal>>()
 const purchases = ref<Purchase[]>([])
+const products = ref<{ id: number; name: string }[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
+
+const fetchProducts = async () => {
+  try {
+    const response = await fetch('http://localhost:8080/api/products')
+    if (!response.ok) throw new Error('Failed to fetch products')
+    products.value = await response.json()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Unknown error'
+  }
+}
 
 const fetchPurchases = async () => {
   loading.value = true
@@ -52,6 +63,7 @@ const columns = [
   { header: 'Status', key: 'status' },
   { header: 'Payment', key: 'paymentStatus' },
   { header: 'Date', key: 'date' },
+  { header: 'Actions', key: 'actions' },
 ]
 
 const markAsDelivered = async (purchase: Purchase) => {
@@ -95,30 +107,33 @@ const setPaymentStatus = async (purchase: Purchase, status: 'NON_PAYE' | 'PAYE')
 
 const actions = [
   {
-    label: 'Mark Delivered',
+    label: 'Livrer',
     action: (item: Purchase) => markAsDelivered(item),
-    class: 'text-blue-500 hover:text-blue-700 disabled:opacity-50',
+    class:
+      'inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 transition-colors hover:border-amber-300 hover:bg-amber-100',
     isVisible: (item: Purchase) => item.status !== 'LIVREE',
   },
   {
-    label: 'Mark Paid',
+    label: 'Marquer payee',
     action: (item: Purchase) => setPaymentStatus(item, 'PAYE'),
-    class: 'text-green-600 hover:text-green-700 disabled:opacity-50',
+    class:
+      'inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 transition-colors hover:border-amber-300 hover:bg-amber-100',
     isVisible: (item: Purchase) => item.paymentStatus !== 'PAYE',
-  },
-  {
-    label: 'Mark Unpaid',
-    action: (item: Purchase) => setPaymentStatus(item, 'NON_PAYE'),
-    class: 'text-amber-600 hover:text-amber-700 disabled:opacity-50',
-    isVisible: (item: Purchase) => item.paymentStatus !== 'NON_PAYE',
   },
 ]
 
 const handleCreate = () => {
-  router.push('/purchases/create')
+  createModal.value?.open()
 }
 
-onMounted(fetchPurchases)
+const handleCreated = (newPurchase: unknown) => {
+  purchases.value.unshift(newPurchase as Purchase)
+}
+
+onMounted(() => {
+  fetchPurchases()
+  fetchProducts()
+})
 </script>
 
 <template>
@@ -142,6 +157,37 @@ onMounted(fetchPurchases)
       message="No purchases found."
       action-label="Create Purchase"
       :on-action="handleCreate"
+    />
+    <CreateModal
+      ref="createModal"
+      entity-name="Purchase"
+      api-endpoint="purchases"
+      :fields="[
+        {
+          key: 'productId',
+          label: 'Product',
+          type: 'select',
+          required: true,
+          valueType: 'number',
+          placeholder: 'Select product',
+          options: products.map((product) => ({ label: product.name, value: product.id })),
+        },
+        {
+          key: 'quantity',
+          label: 'Quantity',
+          type: 'number',
+          required: true,
+          valueType: 'number',
+        },
+        {
+          key: 'pricePerItem',
+          label: 'Price per Item',
+          type: 'number',
+          required: true,
+          valueType: 'number',
+        },
+      ]"
+      @created="handleCreated"
     />
   </div>
 </template>

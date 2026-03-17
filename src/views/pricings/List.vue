@@ -1,6 +1,6 @@
 /* eslint-disable vue/multi-word-component-names */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DataTable from '@/components/DataTable.vue'
 import CreateModal from '@/components/CreateModal.vue'
@@ -16,8 +16,49 @@ interface ProductPricing {
 const router = useRouter()
 const createModal = ref<InstanceType<typeof CreateModal>>()
 const pricings = ref<ProductPricing[]>([])
+const products = ref<{ id: number; name: string }[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
+
+const pricingCreateFields = computed(() => [
+  {
+    key: 'productId',
+    label: 'Product',
+    type: 'select',
+    required: true,
+    valueType: 'number' as const,
+    placeholder: 'Select product',
+    options: products.value.map((product) => ({ label: product.name, value: product.id })),
+  },
+  {
+    key: 'saleType',
+    label: 'Sale Type',
+    type: 'select',
+    required: true,
+    placeholder: 'Select sale type',
+    options: [
+      { label: 'Small', value: 'SMALL' },
+      { label: 'Large', value: 'LARGE' },
+    ],
+  },
+  {
+    key: 'price',
+    label: 'Price',
+    type: 'number',
+    required: true,
+    valueType: 'number' as const,
+  },
+])
+
+const fetchProducts = async () => {
+  try {
+    const response = await fetch('http://localhost:8080/api/products')
+    if (!response.ok) throw new Error('Failed to fetch products')
+    products.value = await response.json()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Unknown error'
+  }
+}
 
 const fetchPricings = async () => {
   loading.value = true
@@ -59,7 +100,7 @@ const actions = [
     action: (item: ProductPricing) => {
       router.push(`/pricings/edit/${item.id}`)
     },
-    class: 'text-blue-500 hover:text-blue-700',
+    class: 'text-amber-600 hover:text-amber-700',
   },
   {
     label: 'Delete',
@@ -77,6 +118,7 @@ const handleCreated = (newPricing: unknown) => {
 }
 
 onMounted(fetchPricings)
+onMounted(fetchProducts)
 </script>
 
 <template>
@@ -105,17 +147,7 @@ onMounted(fetchPricings)
       ref="createModal"
       entity-name="Pricing"
       api-endpoint="pricings"
-      :fields="[
-        { key: 'productId', label: 'Product ID', type: 'number', required: true },
-        {
-          key: 'saleType',
-          label: 'Sale Type',
-          type: 'text',
-          required: true,
-          placeholder: 'SMALL or LARGE',
-        },
-        { key: 'price', label: 'Price', type: 'number', required: true },
-      ]"
+      :fields="pricingCreateFields"
       @created="handleCreated"
     />
   </div>

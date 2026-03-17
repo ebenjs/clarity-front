@@ -61,7 +61,7 @@ const actions = [
     action: (item: Inventory) => {
       router.push(`/inventories/edit/${item.id}`)
     },
-    class: 'text-blue-500 hover:text-blue-700',
+    class: 'text-amber-600 hover:text-amber-700',
   },
   {
     label: 'Delete',

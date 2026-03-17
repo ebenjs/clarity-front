@@ -35,7 +35,7 @@ const submit = async () => {
 
 <template>
   <div
-    class="min-h-screen grid place-items-center bg-linear-to-br from-slate-100 via-white to-cyan-100 p-4"
+    class="min-h-screen grid place-items-center bg-linear-to-br from-slate-100 via-white to-amber-100 p-4"
   >
     <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-lg">
       <h1 class="text-2xl font-bold text-slate-900">Connexion</h1>
@@ -51,7 +51,7 @@ const submit = async () => {
             v-model="username"
             type="text"
             required
-            class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
           />
         </div>
 
@@ -64,7 +64,7 @@ const submit = async () => {
             v-model="password"
             type="password"
             required
-            class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
           />
         </div>
 
@@ -78,7 +78,7 @@ const submit = async () => {
         <button
           type="submit"
           :disabled="loading"
-          class="w-full rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cyan-700 disabled:opacity-60"
+          class="w-full rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 disabled:opacity-60"
         >
           {{ loading ? 'Connexion...' : 'Se connecter' }}
         </button>

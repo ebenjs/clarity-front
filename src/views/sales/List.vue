@@ -1,15 +1,24 @@
 /* eslint-disable vue/multi-word-component-names */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import CreateModal from '@/components/CreateModal.vue'
+
+type SaleType = 'SMALL' | 'LARGE'
+
+interface ProductPricing {
+  id: number
+  product: { id: number; name: string }
+  saleType: SaleType
+  price: number
+}
 
 interface Sale {
   id: number
   product: { id: number; name: string }
   quantity: number
-  type: 'SMALL' | 'LARGE'
+  type: SaleType
   price: number
   total: number
   date: string
@@ -22,6 +31,7 @@ const createModal = ref<InstanceType<typeof CreateModal>>()
 const sales = ref<Sale[]>([])
 const products = ref<{ id: number; name: string }[]>([])
 const clients = ref<{ id: number; name: string }[]>([])
+const pricings = ref<ProductPricing[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 
@@ -40,6 +50,16 @@ const fetchClients = async () => {
     const response = await fetch('http://localhost:8080/api/clients')
     if (!response.ok) throw new Error('Failed to fetch clients')
     clients.value = await response.json()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Unknown error'
+  }
+}
+
+const fetchPricings = async () => {
+  try {
+    const response = await fetch('http://localhost:8080/api/pricings')
+    if (!response.ok) throw new Error('Failed to fetch pricings')
+    pricings.value = await response.json()
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Unknown error'
   }
@@ -99,10 +119,108 @@ const actions = [
     label: 'Voir facture',
     action: (item: Sale) => viewInvoice(item),
     class:
-      'inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100',
+      'inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 transition-colors hover:border-amber-300 hover:bg-amber-100',
     isVisible: (item: Sale) => Boolean(item.invoiceUrl),
   },
 ]
+
+const getSaleTypesForProduct = (selectedProductId: number): SaleType[] => {
+  return [
+    ...new Set(
+      pricings.value
+        .filter((pricing) => pricing.product.id === selectedProductId)
+        .map((pricing) => pricing.saleType),
+    ),
+  ]
+}
+
+const saleTypeLabel: Record<SaleType, string> = {
+  SMALL: 'Small',
+  LARGE: 'Large',
+}
+
+const saleCreationWarning = (form: Record<string, unknown>) => {
+  const selectedProductId = Number(form.productId)
+  if (!selectedProductId) return null
+
+  const selectedProduct = products.value.find((product) => product.id === selectedProductId)
+  const availableTypes = getSaleTypesForProduct(selectedProductId)
+
+  if (availableTypes.length > 0) return null
+
+  return `Vous ne pouvez pas enregistrer de vente pour ${selectedProduct?.name ?? 'ce produit'} car aucun prix n'est configure. Configurez d'abord un pricing.`
+}
+
+const salesCreateFields = computed(() => [
+  {
+    key: 'productId',
+    label: 'Product',
+    type: 'select',
+    required: true,
+    valueType: 'number' as const,
+    placeholder: 'Select product',
+    options: products.value.map((product) => ({ label: product.name, value: product.id })),
+  },
+  {
+    key: 'quantity',
+    label: 'Quantity',
+    type: 'number',
+    required: true,
+    valueType: 'number' as const,
+  },
+  {
+    key: 'type',
+    label: 'Type',
+    type: 'select',
+    required: true,
+    placeholder: 'Select sale type',
+    options: (form: Record<string, unknown>) => {
+      const selectedProductId = Number(form.productId)
+      if (!selectedProductId) return []
+
+      return getSaleTypesForProduct(selectedProductId).map((saleType) => ({
+        label: saleTypeLabel[saleType],
+        value: saleType,
+      }))
+    },
+  },
+  {
+    key: 'seller',
+    label: 'Seller',
+    type: 'text',
+    required: true,
+  },
+  {
+    key: 'clientId',
+    label: 'Client',
+    type: 'select',
+    required: true,
+    valueType: 'number' as const,
+    placeholder: 'Select client',
+    options: clients.value.map((client) => ({ label: client.name, value: client.id })),
+  },
+])
+
+const validateSaleCreation = (form: Record<string, unknown>) => {
+  const selectedProductId = Number(form.productId)
+  const selectedType = String(form.type || '')
+
+  if (!selectedProductId) {
+    return 'Veuillez selectionner un produit.'
+  }
+
+  const availableTypes = getSaleTypesForProduct(selectedProductId)
+
+  if (!availableTypes.length) {
+    return "Impossible d'enregistrer la vente: aucun prix n'est configure pour ce produit."
+  }
+
+  if (!selectedType || !availableTypes.includes(selectedType as SaleType)) {
+    return 'Veuillez selectionner un type de vente configure pour ce produit.'
+  }
+
+  return null
+}
 
 const handleCreate = () => {
   createModal.value?.open()
@@ -116,6 +234,7 @@ onMounted(() => {
   fetchSales()
   fetchProducts()
   fetchClients()
+  fetchPricings()
 })
 </script>
 
@@ -145,50 +264,9 @@ onMounted(() => {
       ref="createModal"
       entity-name="Sale"
       api-endpoint="sales"
-      :fields="[
-        {
-          key: 'productId',
-          label: 'Product',
-          type: 'select',
-          required: true,
-          valueType: 'number',
-          placeholder: 'Select product',
-          options: products.map((product) => ({ label: product.name, value: product.id })),
-        },
-        {
-          key: 'quantity',
-          label: 'Quantity',
-          type: 'number',
-          required: true,
-          valueType: 'number',
-        },
-        {
-          key: 'type',
-          label: 'Type',
-          type: 'select',
-          required: true,
-          placeholder: 'Select sale type',
-          options: [
-            { label: 'Small', value: 'SMALL' },
-            { label: 'Large', value: 'LARGE' },
-          ],
-        },
-        {
-          key: 'seller',
-          label: 'Seller',
-          type: 'text',
-          required: true,
-        },
-        {
-          key: 'clientId',
-          label: 'Client',
-          type: 'select',
-          required: true,
-          valueType: 'number',
-          placeholder: 'Select client',
-          options: clients.map((client) => ({ label: client.name, value: client.id })),
-        },
-      ]"
+      :fields="salesCreateFields"
+      :validate="validateSaleCreation"
+      :warning="saleCreationWarning"
       @created="handleCreated"
     />
   </div>

@@ -16,7 +16,9 @@ defineEmits(['linkSelected'])
     @click="$emit('linkSelected')"
     :class="[
       'flex items-center p-3 rounded-md cursor-pointer',
-      isActive ? 'bg-violet-500 text-white' : ' hover:bg-violet-200 hover:text-black',
+      isActive
+        ? 'bg-amber-100 text-amber-800 font-medium'
+        : 'hover:bg-amber-100 hover:text-amber-800',
     ]"
   >
     <HugeiconsIcon :icon="props.icon" />

@@ -118,37 +118,37 @@ const fetchMonthlyCosts = async () => {
     </div>
     <div class="space-y-4">
       <div>
-        <button @click="fetchMonthlyTurnover" class="bg-blue-500 text-white px-4 py-2 rounded">
+        <button @click="fetchMonthlyTurnover" class="bg-amber-600 text-white px-4 py-2 rounded">
           Get Monthly Turnover
         </button>
         <div v-if="monthlyTurnover !== null">Turnover: {{ monthlyTurnover }}</div>
       </div>
       <div>
-        <button @click="fetchMonthlySummary" class="bg-blue-500 text-white px-4 py-2 rounded">
+        <button @click="fetchMonthlySummary" class="bg-amber-600 text-white px-4 py-2 rounded">
           Get Monthly Summary
         </button>
         <pre v-if="monthlySummary">{{ JSON.stringify(monthlySummary, null, 2) }}</pre>
       </div>
       <div>
-        <button @click="fetchStockOverview" class="bg-blue-500 text-white px-4 py-2 rounded">
+        <button @click="fetchStockOverview" class="bg-amber-600 text-white px-4 py-2 rounded">
           Get Stock Overview
         </button>
         <pre v-if="stockOverview">{{ JSON.stringify(stockOverview, null, 2) }}</pre>
       </div>
       <div>
-        <button @click="fetchMonthlySales" class="bg-blue-500 text-white px-4 py-2 rounded">
+        <button @click="fetchMonthlySales" class="bg-amber-600 text-white px-4 py-2 rounded">
           Get Monthly Sales
         </button>
         <pre v-if="monthlySales">{{ JSON.stringify(monthlySales, null, 2) }}</pre>
       </div>
       <div>
-        <button @click="fetchMonthlyProfit" class="bg-blue-500 text-white px-4 py-2 rounded">
+        <button @click="fetchMonthlyProfit" class="bg-amber-600 text-white px-4 py-2 rounded">
           Get Monthly Profit
         </button>
         <div v-if="monthlyProfit !== null">Profit: {{ monthlyProfit }}</div>
       </div>
       <div>
-        <button @click="fetchMonthlyCosts" class="bg-blue-500 text-white px-4 py-2 rounded">
+        <button @click="fetchMonthlyCosts" class="bg-amber-600 text-white px-4 py-2 rounded">
           Get Monthly Costs
         </button>
         <pre v-if="monthlyCosts">{{ JSON.stringify(monthlyCosts, null, 2) }}</pre>

@@ -26,6 +26,29 @@ ChartJS.register(
   ArcElement,
 )
 
+interface SaleRecord {
+  id: number
+  total: number
+  date: string
+}
+
+interface CostRecord {
+  id: number
+  amount: number
+  date: string
+}
+
+interface StockRecord {
+  id: number
+  product?: { id: number; name: string }
+  quantity: number
+  productName?: string
+  name?: string
+  availableQuantity?: number
+  totalQuantity?: number
+  stock?: number
+}
+
 // Statistiques principales
 const stats = ref({
   totalRevenue: 0,
@@ -38,49 +61,113 @@ const stats = ref({
 
 // Données pour les charts
 const salesChartData = ref({
-  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+  labels: [] as string[],
   datasets: [
     {
       label: 'Ventes mensuelles',
-      data: [12000, 19000, 15000, 25000, 22000, 30000],
-      backgroundColor: 'rgba(59, 130, 246, 0.5)',
-      borderColor: 'rgba(59, 130, 246, 1)',
+      data: [] as number[],
+      backgroundColor: 'rgba(217, 119, 6, 0.45)',
+      borderColor: 'rgba(217, 119, 6, 1)',
       borderWidth: 1,
     },
   ],
 })
 
 const profitChartData = ref({
-  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+  labels: [] as string[],
   datasets: [
     {
       label: 'Profit',
-      data: [2000, 4000, 3000, 5000, 4500, 6000],
-      borderColor: 'rgba(34, 197, 94, 1)',
-      backgroundColor: 'rgba(34, 197, 94, 0.1)',
+      data: [] as number[],
+      borderColor: 'rgba(217, 119, 6, 1)',
+      backgroundColor: 'rgba(217, 119, 6, 0.12)',
       tension: 0.4,
     },
   ],
 })
 
 const stockChartData = ref({
-  labels: ['Produits A', 'Produits B', 'Produits C', 'Produits D', 'Produits E'],
+  labels: [] as string[],
   datasets: [
     {
-      data: [120, 80, 150, 90, 200],
-      backgroundColor: [
-        'rgba(255, 99, 132, 0.8)',
-        'rgba(54, 162, 235, 0.8)',
-        'rgba(255, 205, 86, 0.8)',
-        'rgba(75, 192, 192, 0.8)',
-        'rgba(153, 102, 255, 0.8)',
-      ],
+      data: [] as number[],
+      backgroundColor: [] as string[],
     },
   ],
 })
 
 const loading = ref(true)
 const currency = ref('XAF')
+const salesChartKey = ref(0)
+const stockChartKey = ref(0)
+const profitChartKey = ref(0)
+
+const toMonthKey = (dateValue: string) => {
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) return null
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  return `${year}-${month}`
+}
+
+const sumByMonth = (records: Array<{ date: string; amount: number }>) => {
+  const totals = new Map<string, number>()
+
+  records.forEach((record) => {
+    const key = toMonthKey(record.date)
+    if (!key) return
+
+    const current = totals.get(key) ?? 0
+    totals.set(key, current + Number(record.amount ?? 0))
+  })
+
+  return totals
+}
+
+const countByMonth = (records: Array<{ date: string }>) => {
+  const totals = new Map<string, number>()
+
+  records.forEach((record) => {
+    const key = toMonthKey(record.date)
+    if (!key) return
+
+    const current = totals.get(key) ?? 0
+    totals.set(key, current + 1)
+  })
+
+  return totals
+}
+
+const sortMonthKeys = (keys: string[]) => {
+  return [...keys].sort((a, b) => {
+    const [yearAToken, monthAToken] = a.split('-')
+    const [yearBToken, monthBToken] = b.split('-')
+
+    const yearA = Number(yearAToken) || 0
+    const monthA = Number(monthAToken) || 0
+    const yearB = Number(yearBToken) || 0
+    const monthB = Number(monthBToken) || 0
+
+    if (yearA !== yearB) return yearA - yearB
+    return monthA - monthB
+  })
+}
+
+const getStockQuantity = (stock: StockRecord) => {
+  const candidates = [
+    Number(stock.quantity),
+    Number(stock.availableQuantity),
+    Number(stock.totalQuantity),
+    Number(stock.stock),
+  ]
+
+  return candidates.find((value) => Number.isFinite(value)) ?? 0
+}
+
+const getStockLabel = (stock: StockRecord) => {
+  return stock.product?.name || stock.productName || stock.name || `Produit #${stock.id}`
+}
 
 const formatCurrency = (value: number) => {
   const numeric = Number(value ?? 0)
@@ -108,91 +195,126 @@ const fetchCompanyConfig = async () => {
   }
 }
 
-// Fonctions pour charger les données depuis l'API
 const fetchStats = async () => {
   try {
     await fetchCompanyConfig()
 
-    // Récupérer les statistiques principales
-    const currentDate = new Date()
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth() + 1
+    const [salesResponse, costsResponse, productsResponse, clientsResponse, stocksResponse] =
+      await Promise.all([
+        fetch('http://localhost:8080/api/sales'),
+        fetch('http://localhost:8080/api/costs'),
+        fetch('http://localhost:8080/api/products'),
+        fetch('http://localhost:8080/api/clients'),
+        fetch('http://localhost:8080/api/stocks'),
+      ])
 
-    // Turnover mensuel
-    const turnoverResponse = await fetch(
-      `http://localhost:8080/api/reports/turnover/monthly?year=${year}&month=${month}`,
+    const sales: SaleRecord[] = salesResponse.ok ? await salesResponse.json() : []
+    const costs: CostRecord[] = costsResponse.ok ? await costsResponse.json() : []
+    const products: unknown[] = productsResponse.ok ? await productsResponse.json() : []
+    const clients: unknown[] = clientsResponse.ok ? await clientsResponse.json() : []
+    const stocks: StockRecord[] = stocksResponse.ok ? await stocksResponse.json() : []
+
+    const salesByMonthAmount = sumByMonth(
+      sales.map((sale) => ({
+        date: sale.date,
+        amount: Number(sale.total ?? 0),
+      })),
     )
-    if (turnoverResponse.ok) {
-      stats.value.totalRevenue = await turnoverResponse.json()
-    }
-
-    // Profit mensuel
-    const profitResponse = await fetch(
-      `http://localhost:8080/api/reports/profit/monthly?year=${year}&month=${month}`,
+    const costsByMonthAmount = sumByMonth(
+      costs.map((cost) => ({
+        date: cost.date,
+        amount: Number(cost.amount ?? 0),
+      })),
     )
-    if (profitResponse.ok) {
-      stats.value.totalProfit = await profitResponse.json()
-    }
+    const salesByMonthCount = countByMonth(sales)
 
-    // Résumé mensuel pour les ventes et coûts
-    const summaryResponse = await fetch(
-      `http://localhost:8080/api/reports/summary/monthly?year=${year}&month=${month}`,
+    const currentMonthKey = toMonthKey(new Date().toISOString())
+
+    stats.value.totalRevenue = currentMonthKey ? (salesByMonthAmount.get(currentMonthKey) ?? 0) : 0
+    stats.value.totalCosts = currentMonthKey ? (costsByMonthAmount.get(currentMonthKey) ?? 0) : 0
+    stats.value.totalProfit = stats.value.totalRevenue - stats.value.totalCosts
+    stats.value.totalSales = currentMonthKey ? (salesByMonthCount.get(currentMonthKey) ?? 0) : 0
+    stats.value.totalProducts = products.length
+    stats.value.totalClients = clients.length
+
+    const salesMonthKeys = sortMonthKeys(
+      [...salesByMonthAmount.keys()].filter((key) => (salesByMonthAmount.get(key) ?? 0) > 0),
     )
-    if (summaryResponse.ok) {
-      const summary = await summaryResponse.json()
-      stats.value.totalSales = summary.totalSales || 0
-      stats.value.totalCosts = summary.totalCosts || 0
-    }
 
-    // Nombre de produits
-    const productsResponse = await fetch('http://localhost:8080/api/products')
-    if (productsResponse.ok) {
-      const products = await productsResponse.json()
-      stats.value.totalProducts = products.length
-    }
+    const fallbackMonthKey =
+      toMonthKey(new Date().toISOString()) ||
+      `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
 
-    // Nombre de clients
-    const clientsResponse = await fetch('http://localhost:8080/api/clients')
-    if (clientsResponse.ok) {
-      const clients = await clientsResponse.json()
-      stats.value.totalClients = clients.length
-    }
+    const effectiveSalesMonthKeys: string[] = salesMonthKeys.length
+      ? salesMonthKeys
+      : [fallbackMonthKey]
 
-    // Données pour les charts
-    await fetchChartData(year, month)
+    const monthlyRevenue = effectiveSalesMonthKeys.map((key) => salesByMonthAmount.get(key) ?? 0)
+    const monthlyCosts = effectiveSalesMonthKeys.map((key) => costsByMonthAmount.get(key) ?? 0)
+    const monthlyProfit = monthlyRevenue.map((amount, index) => amount - (monthlyCosts[index] ?? 0))
+
+    salesChartData.value = {
+      labels: [...effectiveSalesMonthKeys],
+      datasets: [
+        {
+          label: 'Ventes mensuelles',
+          data: [...monthlyRevenue],
+          backgroundColor: 'rgba(217, 119, 6, 0.45)',
+          borderColor: 'rgba(217, 119, 6, 1)',
+          borderWidth: 1,
+        },
+      ],
+    }
+    salesChartKey.value += 1
+
+    profitChartData.value = {
+      labels: [...effectiveSalesMonthKeys],
+      datasets: [
+        {
+          label: 'Profit',
+          data: [...monthlyProfit],
+          borderColor: 'rgba(217, 119, 6, 1)',
+          backgroundColor: 'rgba(217, 119, 6, 0.12)',
+          tension: 0.4,
+        },
+      ],
+    }
+    profitChartKey.value += 1
+
+    const positiveStocks = stocks.filter((stock) => getStockQuantity(stock) > 0)
+    const topStocks = positiveStocks
+      .sort((a, b) => getStockQuantity(b) - getStockQuantity(a))
+      .slice(0, 8)
+
+    const stockPalette = [
+      'rgba(217, 119, 6, 0.85)',
+      'rgba(245, 158, 11, 0.85)',
+      'rgba(251, 191, 36, 0.85)',
+      'rgba(202, 138, 4, 0.85)',
+      'rgba(146, 64, 14, 0.85)',
+      'rgba(180, 83, 9, 0.85)',
+      'rgba(234, 88, 12, 0.85)',
+      'rgba(161, 98, 7, 0.85)',
+    ]
+    const paletteSize = stockPalette.length
+
+    stockChartData.value = {
+      labels: topStocks.map((stock) => getStockLabel(stock)),
+      datasets: [
+        {
+          data: topStocks.map((stock) => getStockQuantity(stock)),
+          backgroundColor: topStocks.map(
+            (_, index) =>
+              stockPalette[index % paletteSize] || stockPalette[0] || 'rgba(217, 119, 6, 0.85)',
+          ),
+        },
+      ],
+    }
+    stockChartKey.value += 1
   } catch (error) {
     console.error('Erreur lors du chargement des statistiques:', error)
   } finally {
     loading.value = false
-  }
-}
-
-const fetchChartData = async (year: number, month: number) => {
-  try {
-    // Ventes mensuelles pour le chart
-    const salesResponse = await fetch(
-      `http://localhost:8080/api/reports/sales/monthly?year=${year}&month=${month}`,
-    )
-    if (salesResponse.ok) {
-      const salesData = await salesResponse.json()
-      // Adapter les données selon la structure de l'API
-      if (Array.isArray(salesData) && salesChartData.value.datasets[0]) {
-        salesChartData.value.labels = salesData.map((item) => item.month || item.label)
-        salesChartData.value.datasets[0].data = salesData.map((item) => item.amount || item.value)
-      }
-    }
-
-    // Aperçu des stocks pour le chart circulaire
-    const stockResponse = await fetch('http://localhost:8080/api/reports/stock/overview')
-    if (stockResponse.ok) {
-      const stockData = await stockResponse.json()
-      if (Array.isArray(stockData) && stockChartData.value.datasets[0]) {
-        stockChartData.value.labels = stockData.map((item) => item.productName || item.name)
-        stockChartData.value.datasets[0].data = stockData.map((item) => item.quantity || item.value)
-      }
-    }
-  } catch (error) {
-    console.error('Erreur lors du chargement des données de chart:', error)
   }
 }
 
@@ -219,9 +341,9 @@ onMounted(() => {
               {{ formatCurrency(stats.totalRevenue) }}
             </p>
           </div>
-          <div class="p-3 bg-green-100 rounded-full">
+          <div class="p-3 bg-amber-100 rounded-full">
             <svg
-              class="w-6 h-6 text-green-600"
+              class="w-6 h-6 text-amber-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -245,9 +367,9 @@ onMounted(() => {
               {{ formatCurrency(stats.totalProfit) }}
             </p>
           </div>
-          <div class="p-3 bg-blue-100 rounded-full">
+          <div class="p-3 bg-amber-100 rounded-full">
             <svg
-              class="w-6 h-6 text-blue-600"
+              class="w-6 h-6 text-amber-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -269,9 +391,9 @@ onMounted(() => {
             <p class="text-sm font-medium text-body">Ventes</p>
             <p class="text-2xl font-bold text-heading">{{ stats.totalSales }}</p>
           </div>
-          <div class="p-3 bg-purple-100 rounded-full">
+          <div class="p-3 bg-amber-100 rounded-full">
             <svg
-              class="w-6 h-6 text-purple-600"
+              class="w-6 h-6 text-amber-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -314,6 +436,7 @@ onMounted(() => {
         <h3 class="text-lg font-semibold text-heading mb-4">Ventes Mensuelles</h3>
         <div class="h-64">
           <Bar
+            :key="salesChartKey"
             :data="salesChartData"
             :options="{
               responsive: true,
@@ -343,6 +466,7 @@ onMounted(() => {
         <h3 class="text-lg font-semibold text-heading mb-4">Répartition des Stocks</h3>
         <div class="h-64 flex items-center justify-center">
           <Doughnut
+            :key="stockChartKey"
             :data="stockChartData"
             :options="{
               responsive: true,
@@ -363,6 +487,7 @@ onMounted(() => {
       <h3 class="text-lg font-semibold text-heading mb-4">Évolution du Profit</h3>
       <div class="h-64">
         <Line
+          :key="profitChartKey"
           :data="profitChartData"
           :options="{
             responsive: true,

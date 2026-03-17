@@ -1,31 +1,31 @@
 <script setup lang="ts">
-import { HugeiconsIcon } from '@hugeicons/vue'
-import { Logout05Icon } from '@hugeicons/core-free-icons'
-import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
+defineProps<{
+  isDark: boolean
+}>()
 
-const auth = useAuthStore()
-const router = useRouter()
-
-const logout = async () => {
-  await auth.logout()
-  router.push('/login')
-}
+defineEmits<{
+  (event: 'toggle-theme'): void
+}>()
 </script>
 
 <template>
-  <span class="flex items-center justify-between">
-    <span class="text-xl">Clarity App</span>
+  <div class="flex items-center justify-between gap-3">
+    <span class="text-xl font-semibold text-slate-900 dark-title">Clarity App</span>
+
     <button
       type="button"
-      @click="logout"
-      class="inline-flex items-center justify-center rounded-md p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-      title="Se déconnecter"
-      aria-label="Se déconnecter"
+      @click="$emit('toggle-theme')"
+      class="inline-flex items-center rounded-full border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100"
+      :title="isDark ? 'Passer en mode clair' : 'Passer en mode sombre'"
+      :aria-label="isDark ? 'Passer en mode clair' : 'Passer en mode sombre'"
     >
-      <HugeiconsIcon :icon="Logout05Icon" />
+      <span
+        class="mr-2 inline-block h-2 w-2 rounded-full"
+        :class="isDark ? 'bg-amber-500' : 'bg-slate-400'"
+      ></span>
+      {{ isDark ? 'Sombre' : 'Clair' }}
     </button>
-  </span>
+  </div>
 </template>
 
 <style scoped></style>

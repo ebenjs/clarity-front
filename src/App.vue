@@ -2,6 +2,7 @@
 import { RouterView } from 'vue-router'
 import AppLeading from './components/AppLeading.vue'
 import LeftNavigationItem from './components/LeftNavigationItem.vue'
+import { HugeiconsIcon } from '@hugeicons/vue'
 import {
   ApartmentIcon,
   ChartAnalysisIcon,
@@ -13,16 +14,18 @@ import {
   LocationUser01Icon,
   PackageIcon,
   PackageProcessIcon,
+  Logout05Icon,
   SaleTag01Icon,
   TradeUpIcon,
 } from '@hugeicons/core-free-icons'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import router from './router'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 
 const route = useRoute()
 const auth = useAuthStore()
+const THEME_STORAGE_KEY = 'clarity-theme'
 
 const navigationLinks = [
   { id: 1, icon: Home01Icon, label: 'Accueil', routerLink: '/' },
@@ -31,7 +34,7 @@ const navigationLinks = [
   { id: 4, icon: SaleTag01Icon, label: 'Ventes', routerLink: '/sales' },
   { id: 5, icon: TradeUpIcon, label: 'Gestion des Prix', routerLink: '/pricings' },
   { id: 6, icon: PackageProcessIcon, label: 'Commandes', routerLink: '/purchases' },
-  { id: 7, icon: CreditCardPosIcon, label: 'Enregistrement de coûts', routerLink: '/costs' },
+  { id: 7, icon: CreditCardPosIcon, label: 'Lignes de coûts', routerLink: '/costs' },
   { id: 8, icon: Coins02Icon, label: 'Categories de coûts', routerLink: '/cost-categories' },
   { id: 9, icon: ApartmentIcon, label: 'Stock', routerLink: '/stocks' },
   { id: 10, icon: Idea01Icon, label: 'Inventaire', routerLink: '/inventories', adminOnly: true },
@@ -53,6 +56,23 @@ const visibleNavigationLinks = computed(() =>
 )
 
 const isAuthScreen = computed(() => route.name === 'login' || route.name === 'setup')
+const isDarkMode = ref(false)
+
+const connectedUsername = computed(() => auth.user?.username?.trim() || 'Utilisateur')
+
+const userInitials = computed(() => {
+  const words = connectedUsername.value.split(/\s+/).filter(Boolean)
+
+  if (words.length === 0) return 'U'
+  if (words.length === 1) {
+    const firstWord = words[0]
+    return (firstWord ? firstWord.slice(0, 2) : 'U').toUpperCase()
+  }
+
+  const firstLetter = words[0]?.[0] ?? ''
+  const secondLetter = words[1]?.[0] ?? ''
+  return `${firstLetter}${secondLetter}`.toUpperCase()
+})
 
 watch(
   () => route.path,
@@ -74,6 +94,36 @@ const setActiveLink = (id: number) => {
     router.push(selectedLink.routerLink)
   }
 }
+
+const logout = async () => {
+  await auth.logout()
+  router.push('/login')
+}
+
+const applyTheme = (useDarkTheme: boolean) => {
+  document.documentElement.classList.toggle('theme-dark', useDarkTheme)
+}
+
+const toggleTheme = () => {
+  isDarkMode.value = !isDarkMode.value
+}
+
+onMounted(() => {
+  const storedTheme = localStorage.getItem(THEME_STORAGE_KEY)
+
+  if (storedTheme === 'dark' || storedTheme === 'light') {
+    isDarkMode.value = storedTheme === 'dark'
+  } else {
+    isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+  }
+
+  applyTheme(isDarkMode.value)
+})
+
+watch(isDarkMode, (useDarkTheme) => {
+  applyTheme(useDarkTheme)
+  localStorage.setItem(THEME_STORAGE_KEY, useDarkTheme ? 'dark' : 'light')
+})
 </script>
 
 <template>
@@ -81,10 +131,10 @@ const setActiveLink = (id: number) => {
 
   <div v-else class="h-screen bg-gray-100">
     <aside
-      class="fixed inset-y-0 left-0 z-20 w-72 border-r border-gray-300 bg-white p-6 overflow-y-auto"
+      class="fixed inset-y-0 left-0 z-20 w-72 border-r border-gray-300 bg-white p-6 flex flex-col"
     >
-      <AppLeading />
-      <div class="mt-6 flex flex-col gap-2">
+      <AppLeading :is-dark="isDarkMode" @toggle-theme="toggleTheme" />
+      <div class="mt-6 flex flex-col gap-2 flex-1 overflow-y-auto">
         <LeftNavigationItem
           v-for="link in visibleNavigationLinks"
           :key="link.id"
@@ -94,6 +144,29 @@ const setActiveLink = (id: number) => {
           :isActive="activeLinkId === link.id"
           @link-selected="setActiveLink(link.id)"
         />
+      </div>
+
+      <div class="mt-4 pt-4 border-t border-gray-200">
+        <div class="flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2">
+          <div class="flex items-center gap-3 min-w-0">
+            <div
+              class="h-9 w-9 shrink-0 rounded-full bg-amber-600 text-white text-sm font-semibold grid place-items-center"
+            >
+              {{ userInitials }}
+            </div>
+            <span class="text-sm font-medium text-amber-900 truncate">{{ connectedUsername }}</span>
+          </div>
+
+          <button
+            type="button"
+            @click="logout"
+            class="inline-flex items-center justify-center rounded-md p-2 text-amber-700 transition-colors hover:bg-amber-100 hover:text-amber-900"
+            title="Se déconnecter"
+            aria-label="Se déconnecter"
+          >
+            <HugeiconsIcon :icon="Logout05Icon" />
+          </button>
+        </div>
       </div>
     </aside>
 

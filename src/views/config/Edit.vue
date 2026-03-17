@@ -146,7 +146,7 @@ onMounted(fetchConfig)
               v-model="config.name"
               type="text"
               required
-              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
               placeholder="Ex: Clarity SARL"
             />
           </div>
@@ -159,7 +159,7 @@ onMounted(fetchConfig)
               id="address"
               v-model="config.address"
               rows="3"
-              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
               placeholder="Street, city, country"
             ></textarea>
           </div>
@@ -170,7 +170,7 @@ onMounted(fetchConfig)
               id="phone"
               v-model="config.phone"
               type="text"
-              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
               placeholder="+237 6xx xx xx xx"
             />
           </div>
@@ -181,7 +181,7 @@ onMounted(fetchConfig)
               id="email"
               v-model="config.email"
               type="email"
-              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
               placeholder="contact@company.com"
             />
           </div>
@@ -194,7 +194,7 @@ onMounted(fetchConfig)
               id="website"
               v-model="config.website"
               type="text"
-              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
               placeholder="Any text or URL accepted"
             />
           </div>
@@ -207,7 +207,7 @@ onMounted(fetchConfig)
               id="currency"
               v-model="config.currency"
               type="text"
-              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
               placeholder="XAF, EUR, USD"
             />
           </div>
@@ -220,7 +220,7 @@ onMounted(fetchConfig)
               id="logoUrl"
               v-model="config.logoUrl"
               type="text"
-              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+              class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
               placeholder="https://..."
             />
           </div>
@@ -246,7 +246,7 @@ onMounted(fetchConfig)
           <button
             type="submit"
             :disabled="loading"
-            class="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cyan-700 disabled:opacity-60"
+            class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 disabled:opacity-60"
           >
             {{
               loading
@@ -262,7 +262,7 @@ onMounted(fetchConfig)
       <div
         class="xl:col-span-4 rounded-2xl border border-slate-200 bg-slate-900 p-5 text-slate-100 shadow-sm"
       >
-        <h2 class="text-sm font-semibold uppercase tracking-wide text-cyan-300">Live preview</h2>
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-amber-300">Live preview</h2>
         <p class="mt-3 text-2xl font-bold">{{ config.name || 'Company name' }}</p>
         <p class="mt-2 text-sm text-slate-300">{{ config.address || 'Address not set' }}</p>
         <div class="mt-4 space-y-2 text-sm text-slate-200">
